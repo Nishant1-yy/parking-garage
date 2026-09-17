@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+backend/garage.db
+node_modules/
+frontend/dist/
+.env
