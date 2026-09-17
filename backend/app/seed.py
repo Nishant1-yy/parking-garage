@@ -35,3 +35,18 @@ def seed_spots(db: Session) -> None:
 
     db.add_all(spots)
     db.commit()
+
+
+def seed_rates(db: Session) -> None:
+    if db.query(models.RateCard).first():
+        return
+    db.add_all([
+        models.RateCard(
+            spot_type=spot_type,
+            first_hour_rate=5.0,
+            extra_hour_rate=3.0,
+            daily_cap=25.0,
+        )
+        for spot_type in models.SpotType
+    ])
+    db.commit()

@@ -42,6 +42,16 @@ class Spot(Base):
     sessions = relationship("ParkingSession", back_populates="spot")
 
 
+class RateCard(Base):
+    __tablename__ = "rate_cards"
+
+    id = Column(Integer, primary_key=True, index=True)
+    spot_type = Column(Enum(SpotType), unique=True, nullable=False, index=True)
+    first_hour_rate = Column(Float, nullable=False)
+    extra_hour_rate = Column(Float, nullable=False)
+    daily_cap = Column(Float, nullable=False)
+
+
 class ParkingSession(Base):
     """One check-in/check-out cycle for a single vehicle."""
     __tablename__ = "parking_sessions"

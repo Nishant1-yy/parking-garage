@@ -10,6 +10,9 @@ export default function Dashboard() {
   const [ciPlate, setCiPlate] = useState("");
   const [ciType, setCiType] = useState("standard");
   const [coPlate, setCoPlate] = useState("");
+  const [transferPlate, setTransferPlate] = useState("");
+  const [newPlate, setNewPlate] = useState("");
+  const [rateFile, setRateFile] = useState(null);
 
   const [message, setMessage] = useState(null); // {type, text}
   const [busy, setBusy] = useState(false);
@@ -62,6 +65,39 @@ export default function Dashboard() {
       setCoPlate("");
       loadAvailability();
       loadSpots();
+    } catch (err) {
+      flash("error", err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onTransfer(e) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const session = await api.transfer(transferPlate.trim(), newPlate.trim());
+      flash("success", `Session transferred to ${session.plate}; spot ${session.spot_label} and entry time preserved`);
+      setTransferPlate("");
+      setNewPlate("");
+    } catch (err) {
+      flash("error", err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onImportRates(e) {
+    e.preventDefault();
+    if (!rateFile) return;
+    setBusy(true);
+    try {
+      await api.importRates(rateFile);
+      const updatedRates = await api.rates();
+      setRates(updatedRates);
+      flash("success", "Rate card imported; junk rows were ignored");
+      setRateFile(null);
+      e.target.reset();
     } catch (err) {
       flash("error", err.message);
     } finally {
@@ -122,6 +158,32 @@ export default function Dashboard() {
               <input id="co-plate" value={coPlate} onChange={(e) => setCoPlate(e.target.value)} required placeholder="e.g. RJ14 AB1234" />
             </div>
             <button type="submit" disabled={busy}>Check out &amp; get fee</button>
+          </form>
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginBottom: "1rem" }}>Transfer open session</h3>
+          <form onSubmit={onTransfer}>
+            <div className="field">
+              <label htmlFor="transfer-plate">Current plate</label>
+              <input id="transfer-plate" value={transferPlate} onChange={(e) => setTransferPlate(e.target.value)} required placeholder="e.g. RJ14 AB1234" />
+            </div>
+            <div className="field">
+              <label htmlFor="new-plate">New plate</label>
+              <input id="new-plate" value={newPlate} onChange={(e) => setNewPlate(e.target.value)} required placeholder="e.g. RJ14 XY5678" />
+            </div>
+            <button type="submit" disabled={busy}>Transfer session</button>
+          </form>
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginBottom: "1rem" }}>Import rate card</h3>
+          <form onSubmit={onImportRates}>
+            <div className="field">
+              <label htmlFor="rate-file">Messy rate card</label>
+              <input id="rate-file" type="file" accept=".txt,.csv,text/plain,text/csv" onChange={(e) => setRateFile(e.target.files[0] || null)} required />
+            </div>
+            <button type="submit" disabled={busy || !rateFile}>Import cleaned rates</button>
           </form>
         </div>
       </div>

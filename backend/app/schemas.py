@@ -61,6 +61,15 @@ class CheckOutRequest(BaseModel):
     plate: str = Field(min_length=1, max_length=20)
 
 
+class TransferRequest(BaseModel):
+    plate: str = Field(min_length=1, max_length=20)
+    new_plate: str = Field(min_length=1, max_length=20)
+
+
+class ClockRequest(BaseModel):
+    now: Optional[datetime] = None
+
+
 class SessionOut(BaseModel):
     id: int
     plate: str
@@ -88,3 +97,13 @@ class RatesOut(BaseModel):
     extra_hour_rate: float
     daily_cap: float
     currency: str
+
+
+class RateCardOut(BaseModel):
+    spot_type: SpotType
+    first_hour_rate: float
+    extra_hour_rate: float
+    daily_cap: float
+
+    class Config:
+        from_attributes = True

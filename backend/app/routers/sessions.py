@@ -63,10 +63,29 @@ def check_out(
         raise HTTPException(status_code=404, detail=f"No active session found for plate {plate}")
 
     session.check_out = datetime.utcnow()
-    session.fee = services.calculate_fee(session.check_in, session.check_out)
-    session.is_active = False
-    session.spot.status = models.SpotStatus.available
+    services.close_session(session, session.check_out, services.rate_for_spot_type(db, session.spot.spot_type))
 
+    db.commit()
+    db.refresh(session)
+    return _to_session_out(session)
+
+
+@router.post("/transfer", response_model=schemas.SessionOut)
+def transfer(
+    payload: schemas.TransferRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    old_plate = payload.plate.strip().upper()
+    new_plate = payload.new_plate.strip().upper()
+    session = services.active_session_for_plate(db, old_plate)
+    if not session:
+        raise HTTPException(status_code=404, detail=f"No active session found for plate {old_plate}")
+    if old_plate == new_plate:
+        raise HTTPException(status_code=400, detail="The new plate must be different")
+    if services.active_session_for_plate(db, new_plate):
+        raise HTTPException(status_code=400, detail=f"{new_plate} is already checked in")
+    session.plate = new_plate
     db.commit()
     db.refresh(session)
     return _to_session_out(session)

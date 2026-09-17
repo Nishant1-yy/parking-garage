@@ -83,6 +83,35 @@ export const api = {
     return handle(res);
   },
 
+  async transfer(plate, new_plate) {
+    const res = await fetch(`${BASE}/sessions/transfer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ plate, new_plate }),
+    });
+    return handle(res);
+  },
+
+  async clock(now) {
+    const res = await fetch(`${BASE}/clock`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(now ? { now } : {}),
+    });
+    return handle(res);
+  },
+
+  async importRates(file) {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${BASE}/rates/import`, {
+      method: "POST",
+      headers: { ...authHeaders() },
+      body: form,
+    });
+    return handle(res);
+  },
+
   async sessions(params = {}) {
     const qs = new URLSearchParams(
       Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== ""))

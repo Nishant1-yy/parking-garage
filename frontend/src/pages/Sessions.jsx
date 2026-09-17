@@ -21,6 +21,8 @@ export default function Sessions() {
   const [data, setData] = useState({ items: [], total: 0 });
   const [filters, setFilters] = useState({ search: "", active_only: "", sort_by: "check_in", order: "desc", page: 1 });
   const pageSize = 15;
+  const [clockBusy, setClockBusy] = useState(false);
+  const [clockMessage, setClockMessage] = useState("");
 
   const load = useCallback(() => {
     const params = { ...filters, page_size: pageSize };
@@ -45,9 +47,28 @@ export default function Sessions() {
 
   const totalPages = Math.max(1, Math.ceil(data.total / pageSize));
 
+  async function runClock() {
+    setClockBusy(true);
+    setClockMessage("");
+    try {
+      const result = await api.clock();
+      setClockMessage(`${result.closed} session${result.closed === 1 ? "" : "s"} auto-closed and billed.`);
+      load();
+    } catch (err) {
+      setClockMessage(err.message);
+    } finally {
+      setClockBusy(false);
+    }
+  }
+
   return (
     <div>
       <h3 style={{ marginBottom: "1rem" }}>Session log</h3>
+
+      <div className="card" style={{ marginBottom: "1rem", display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
+        <button onClick={runClock} disabled={clockBusy}>Run nightly clock</button>
+        {clockMessage && <span style={{ color: "var(--text-muted)" }}>{clockMessage}</span>}
+      </div>
 
       <div className="card" style={{ marginBottom: "1rem" }}>
         <div style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap", alignItems: "flex-end" }}>
