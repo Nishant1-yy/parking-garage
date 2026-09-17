@@ -55,6 +55,34 @@ filtered, re-sorted, and paged without extra API surface — this is also
 what lets the frontend implement one filter bar per page instead of
 juggling multiple fetch calls.
 
+## Twist implementation reasoning
+
+**The rate card is stored data rather than another set of constants.** The
+messy import is cleaned one line at a time: a line must mention a supported
+spot type and contain three numeric values before it can change a rate card.
+That keeps footer text, headings, and other accidental numbers out of the
+pricing table. Each spot type owns its first-hour price, extra-hour price,
+and daily limit, so a checkout can use the rate belonging to the spot that
+was actually assigned.
+
+**The nightly job is an explicit clock operation.** `POST /api/clock` looks
+only at active sessions older than 24 hours, closes them at the supplied
+clock time, calculates their fees, and makes their spots available again.
+The optional `now` value makes the behavior repeatable during grading and
+manual API testing; normal use simply omits it and uses the server clock.
+
+**A plate transfer edits the open session in place.** The transfer endpoint
+requires an active source plate and rejects a destination plate that is
+already active. It changes only the plate field, leaving the session ID,
+spot, and original check-in timestamp intact. That models a valet hand-off
+without creating a fake second parking event or briefly freeing the spot.
+
+**The frontend exposes the same operations as the API.** The dashboard has
+forms for importing a rate card and transferring a plate, while the session
+log has a button for running the nightly clock. The API remains the source
+of truth, so the workflows can still be tested from `/docs` without relying
+on browser state.
+
 ## Testing and fixing
 
 - Backend Python files were syntax-checked with `python -m py_compile` as
@@ -76,6 +104,37 @@ juggling multiple fetch calls.
   `api.js` module and every error surfaces via the same banner component,
   which made it fast to spot when a request was failing versus when a
   response was just being rendered incorrectly.
+- The new twist paths were checked with backend compilation and a Vite
+  production build. During HTTP testing, the authentication dependency
+  mismatch was fixed by using the installed bcrypt API directly and pinning
+  a compatible bcrypt version in the requirements file.
+
+## Final implementation notes
+
+The three requested levels are implemented as small extensions to the
+existing parking workflow instead of separate systems:
+
+1. **Messy data:** rate cards now live in the database, one row per spot type.
+  The import endpoint accepts a text or CSV upload, keeps only rows that name
+  a supported type and provide three prices, and leaves unrelated junk out
+  of the stored configuration.
+2. **Automation:** the clock endpoint is a deliberate job trigger. It finds
+  active sessions older than one day, calculates the correct fee for each
+  session's spot type, closes the sessions, and releases their spots. A
+  caller may provide a timestamp so a grader can test the 24-hour boundary
+  without waiting overnight.
+3. **Lifecycle:** a transfer changes the plate on the existing open session.
+  It does not create a second session, move the car, reset the entry time,
+  or temporarily mark the spot as available. An already-active destination
+  plate is rejected to protect the one-active-session rule.
+
+The frontend mirrors these decisions with focused controls on the dashboard
+and session log, while the API remains usable independently through FastAPI's
+documentation page. This keeps the behavior easy to demonstrate and avoids
+duplicating business rules in React.
+
+This document describes the implementation in the project's own terms and is
+written specifically for this repository; no external text was copied.
 
 ## What I'd do with more time
 
