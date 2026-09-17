@@ -102,7 +102,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="site">Gantry — built for the Round 2 builder brief.</footer>
+      <footer className="site">Gantry .</footer>
     </div>
   );
 }
