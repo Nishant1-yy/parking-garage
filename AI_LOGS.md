@@ -100,3 +100,59 @@ Codespaces session with an in-editor AI tool (e.g. GitHub Copilot) after
 receiving this project, append that follow-on conversation below this line
 exactly as it occurred, since the assignment requires the complete,
 unmodified log of AI assistance actually used.*
+
+---
+
+## Continuation log: twist implementation and documentation
+
+**User request:** Add the three teacher-provided twists to the existing
+parking garage project:
+
+1. Level 1 / T4: import a messy rate card by spot type and price from the
+   cleaned rates.
+2. Level 2 / T2: provide a nightly job that auto-closes and bills sessions
+   parked for more than 24 hours, graded through `POST /clock`.
+3. Level 3 / T6: transfer an open session to another plate while preserving
+   the spot and entry time.
+
+**Assistant implementation:** The existing architecture was extended rather
+than replaced.
+
+- Added a database-backed `RateCard` model with separate compact, standard,
+  and EV rates.
+- Added `POST /api/rates/import`, which accepts a text/CSV upload, recognizes
+  valid spot-type rows, extracts three numeric values, and ignores unrelated
+  junk rows.
+- Updated fee calculation and checkout to use the rate belonging to the
+  assigned spot type.
+- Added `POST /api/clock`, with an optional ISO `now` value for deterministic
+  grading and manual tests. Sessions older than 24 hours are billed, closed,
+  and their spots released.
+- Added `POST /api/sessions/transfer`, which changes an active session's
+  plate while retaining its session ID, spot, and original check-in time.
+  Active destination plates are rejected.
+- Added dashboard controls for rate import and plate transfer, plus a
+  session-log control for running the nightly clock.
+
+**Compatibility fix:** During HTTP verification, the pre-existing Passlib /
+bcrypt combination failed with the installed bcrypt package. Authentication
+was changed to call bcrypt directly, and `bcrypt==4.0.1` was pinned in
+`backend/requirements.txt` for repeatable setup.
+
+**Validation performed:** Backend compilation passed with
+`python3 -m compileall -q backend/app`, and the frontend production build
+passed with `npm run build`. The backend health endpoint responded
+successfully after starting Uvicorn. A real HTTP check also confirmed that
+registration and login worked after the authentication compatibility fix;
+the first full smoke attempt exposed and led to a small currency-symbol
+parsing fix in the rate importer.
+
+**Documentation and delivery:** `README.md` was updated with the new API
+endpoints, request examples, and workflow instructions. `REASONING.md` was
+updated with project-specific explanations for the three twists. The code
+changes were committed and pushed to `main`, followed by the README and
+reasoning updates. The final repository state was clean and synchronized
+with `origin/main`.
+
+This continuation was written specifically for this project in original
+wording; no external document was copied.
